@@ -1,47 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>QR Code Reader</title>
+    <title>เลือกไฟล์</title>
 </head>
 <body>
-    <video id="video" width="300" height="200" autoplay></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-    <p id="result"></p>
+    <input type="file" id="fileInput">
 
-    <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
     <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const context = canvas.getContext('2d');
-        const resultElement = document.getElementById('result');
+        const fileInput = document.getElementById('fileInput');
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-            .then(stream => {
-                video.srcObject = stream;
-                video.onloadedmetadata = () => {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    scanQRCode();
-                };
-            })
-            .catch(err => {
-                console.error('Error accessing camera:', err);
-                resultElement.textContent = 'ไม่สามารถเข้าถึงกล้องได้';
-            });
-
-        function scanQRCode() {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                inversionAttempts: 'dontInvert',
-            });
-
-            if (code) {
-                resultElement.textContent = `พบ QR code: ${code.data}`;
-            } else {
-                requestAnimationFrame(scanQRCode);
-            }
-        }
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            console.log('ไฟล์ที่เลือก:', file);
+            // เพิ่มโค้ด JavaScript เพื่อประมวลผลไฟล์ที่เลือก
+        });
     </script>
 </body>
 </html>
