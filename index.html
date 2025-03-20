@@ -7,7 +7,7 @@
     <input type="file" id="fileInput" accept=".xlsx">
     <table id="dataTable">
         <thead>
-            <tr></tr>
+            <tr id="sortRow"></tr>
             <tr id="filterRow"></tr>
         </thead>
         <tbody></tbody>
@@ -56,15 +56,21 @@
         }
 
         function createHeader(headers) {
-            const thead = document.querySelector('#dataTable thead tr');
+            const thead = document.getElementById('sortRow');
             thead.innerHTML = '';
 
+            const indexHeader=document.createElement('span');
+            const indexth = document.createElement('th');
+            indexHeader.textContent="Index";
+            indexth.appendChild(indexHeader);
+            thead.appendChild(indexth);
             headers.forEach((headerText, index) => {
                 const th = document.createElement('th');
-                const button = document.createElement('button'); // สร้างปุ่ม
-                button.textContent = headerText;
-                button.addEventListener('click', () => sortData(index)); // เพิ่ม event listener
-                th.appendChild(button);
+                const headerTextElement = document.createElement('span');
+                headerTextElement.textContent = headerText;
+                headerTextElement.style.cursor = 'pointer';
+                headerTextElement.addEventListener('click', () => sortData(index));
+                th.appendChild(headerTextElement);
                 thead.appendChild(th);
                 sortDirections[index] = 'asc'; // กำหนดทิศทางการเรียงลำดับเริ่มต้น
             });
@@ -73,7 +79,7 @@
         function sortData(columnIndex) {
             const direction = sortDirections[columnIndex];
             jsonData.sort((a, b) => {
-            if (columnIndex === 0) return 0; // ไม่เรียง header
+            //if (columnIndex === 0) return 0; // ไม่เรียง header
                 const valA = a[columnIndex];
                 const valB = b[columnIndex];
 
@@ -90,6 +96,12 @@
         function createFilters(headers) {
             const filterRow = document.getElementById('filterRow');
             filterRow.innerHTML = '';
+
+            const indexHeader=document.createElement('span');
+            const indexth = document.createElement('th');
+            indexHeader.textContent="";
+            indexth.appendChild(indexHeader);
+            filterRow.appendChild(indexth);
 
             headers.forEach((headerText, index) => {
                 const th = document.createElement('th');
