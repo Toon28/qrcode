@@ -14,6 +14,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
     <script>
+        let jsonData = [];
         document.getElementById('fileInput').addEventListener('change', function(event) {
             const file = event.target.files[0];
             const reader = new FileReader();
@@ -23,9 +24,10 @@
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                 displayTable(jsonData);
+                createFilters(jsonData[0]);
             };
 
             reader.readAsArrayBuffer(file);
@@ -33,29 +35,39 @@
 
         function displayTable(data) {
             const table = document.getElementById('dataTable');
-            const thead = table.querySelector('thead tr');
             const tbody = table.querySelector('tbody');
-
-            thead.innerHTML = '';
             tbody.innerHTML = '';
 
-            if (data.length > 0) {
-                data[0].forEach(headerText => {
-                    const th = document.createElement('th');
-                    th.textContent = headerText;
-                    thead.appendChild(th);
+            for (let i = 1; i < data.length; i++) {
+                const row = document.createElement('tr');
+                data[i].forEach(cellText => {
+                    const cell = document.createElement('td');
+                    cell.textContent = cellText;
+                    row.appendChild(cell);
                 });
-
-                for (let i = 1; i < data.length; i++) {
-                    const row = document.createElement('tr');
-                    data[i].forEach(cellText => {
-                        const cell = document.createElement('td');
-                        cell.textContent = cellText;
-                        row.appendChild(cell);
-                    });
-                    tbody.appendChild(row);
-                }
+                tbody.appendChild(cell);
             }
+        }
+        function createFilters(headers) {
+            const filterRow = document.getElementById('filterRow');
+            filterRow.innerHTML = ''; // เคลียร์แถว filter เดิม
+
+            headers.forEach((headerText, index) => {
+                const th = document.createElement('th');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `Filter ${headerText}`;
+                input.addEventListener('input', () => filterData(index, input.value)); // เพิ่ม event listener
+                th.appendChild(input);
+                filterRow.appendChild(th);
+            });
+        }
+        function filterData(columnIndex, filterValue) {
+            const filteredData = jsonData.filter((row, index) => {
+                if (index === 0) return true; // ไม่กรอง header
+                return String(row[columnIndex]).toLowerCase().includes(filterValue.toLowerCase());
+            });
+            displayTable(filteredData);
         }
     </script>
 </body>
