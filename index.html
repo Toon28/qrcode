@@ -1,19 +1,62 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>เลือกไฟล์</title>
+    <title>อ่านไฟล์ XLSX</title>
 </head>
 <body>
-    <input type="file" id="fileInput">
+    <input type="file" id="fileInput" accept=".xlsx">
+    <table id="dataTable">
+        <thead>
+            <tr></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
     <script>
-        const fileInput = document.getElementById('fileInput');
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
 
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            console.log('ไฟล์ที่เลือก:', file);
-            // เพิ่มโค้ด JavaScript เพื่อประมวลผลไฟล์ที่เลือก
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                displayTable(jsonData);
+            };
+
+            reader.readAsArrayBuffer(file);
         });
+
+        function displayTable(data) {
+            const table = document.getElementById('dataTable');
+            const thead = table.querySelector('thead tr');
+            const tbody = table.querySelector('tbody');
+
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            if (data.length > 0) {
+                data[0].forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    thead.appendChild(th);
+                });
+
+                for (let i = 1; i < data.length; i++) {
+                    const row = document.createElement('tr');
+                    data[i].forEach(cellText => {
+                        const cell = document.createElement('td');
+                        cell.textContent = cellText;
+                        row.appendChild(cell);
+                    });
+                    tbody.appendChild(row);
+                }
+            }
+        }
     </script>
 </body>
 </html>
