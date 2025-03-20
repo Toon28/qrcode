@@ -16,6 +16,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
     <script>
         let jsonData = [];
+        let sortDirections = {};
         document.getElementById('fileInput').addEventListener('change', function(event) {
             const file = event.target.files[0];
             const reader = new FileReader();
@@ -28,6 +29,7 @@
                 jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                 displayTable(jsonData);
+                createHeader(jsonData[0]);
                 createFilters(jsonData[0]);
             };
 
@@ -49,9 +51,42 @@
                 tbody.appendChild(row);
             }
         }
+
+        function createHeader(headers) {
+            const thead = document.querySelector('#dataTable thead tr');
+            thead.innerHTML = '';
+
+            headers.forEach((headerText, index) => {
+                const th = document.createElement('th');
+                const button = document.createElement('button'); // สร้างปุ่ม
+                button.textContent = headerText;
+                button.addEventListener('click', () => sortData(index)); // เพิ่ม event listener
+                th.appendChild(button);
+                thead.appendChild(th);
+                sortDirections[index] = 'asc'; // กำหนดทิศทางการเรียงลำดับเริ่มต้น
+            });
+        }
+
+        function sortData(columnIndex) {
+            const direction = sortDirections[columnIndex];
+            jsonData.sort((a, b) => {
+            if (columnIndex === 0) return 0; // ไม่เรียง header
+                const valA = a[columnIndex];
+                const valB = b[columnIndex];
+
+                if (direction === 'asc') {
+                    return String(valA).localeCompare(String(valB));
+                } else {
+                    return String(valB).localeCompare(String(valA));
+                }
+            });
+
+            sortDirections[columnIndex] = direction === 'asc' ? 'desc' : 'asc'; // สลับทิศทาง
+            displayTable(jsonData);
+        }
         function createFilters(headers) {
             const filterRow = document.getElementById('filterRow');
-            filterRow.innerHTML = ''; // เคลียร์แถว filter เดิม
+            filterRow.innerHTML = '';
 
             headers.forEach((headerText, index) => {
                 const th = document.createElement('th');
