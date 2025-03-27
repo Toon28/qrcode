@@ -1,125 +1,93 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>อ่านไฟล์ XLSX</title>
+    <title>OCR ตัวเลขจากรูปภาพ</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            text-align: center;
+            border: 2px solid #ccc;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: white;
+        }
+
+        video {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
 </head>
 <body>
-    <input type="file" id="fileInput" accept=".xlsx">
-    <table id="dataTable">
-        <thead>
-            <tr id="sortRow"></tr>
-            <tr id="filterRow"></tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+    <div class="container">
+        <video id="video" width="320" height="240" autoplay></video>
+        <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+        <button id="capture">ถ่ายภาพ</button>
+        <div id="result"></div>
+    </div>
     <script>
-        let jsonData = [];
-        let sortDirections = {};
-        document.getElementById('fileInput').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture');
+        const resultDiv = document.getElementById('result');
+        const context = canvas.getContext('2d');
 
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-                displayTable(jsonData);
-                createHeader(jsonData[0]);
-                createFilters(jsonData[0]);
-            };
-
-            reader.readAsArrayBuffer(file);
-        });
-
-        function displayTable(data) {
-            const table = document.getElementById('dataTable');
-            const tbody = table.querySelector('tbody');
-            tbody.innerHTML = '';
-
-            for (let i = 1; i < data.length; i++) {
-                const row = document.createElement('tr');
-                const indexCell = document.createElement('td');
-                indexCell.textContent = i.toString();
-                row.appendChild(indexCell);
-                data[i].forEach(cellText => {
-                    const cell = document.createElement('td');
-                    cell.textContent = cellText;
-                    row.appendChild(cell);
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function (stream) {
+                    video.srcObject = stream;
+                })
+                .catch(function (error) {
+                    console.error('ไม่สามารถเข้าถึงกล้องได้:', error);
                 });
-                tbody.appendChild(row);
-            }
+        } else {
+            alert('เบราว์เซอร์ของคุณไม่รองรับ getUserMedia');
         }
 
-        function createHeader(headers) {
-            const thead = document.getElementById('sortRow');
-            thead.innerHTML = '';
+        captureButton.addEventListener('click', function () {
+            context.drawImage(video, 0, 0, 320, 240);
+            const imageData = canvas.toDataURL('image/png');
 
-            const indexHeader=document.createElement('span');
-            const indexth = document.createElement('th');
-            indexHeader.textContent="Index";
-            indexth.appendChild(indexHeader);
-            thead.appendChild(indexth);
-            headers.forEach((headerText, index) => {
-                const th = document.createElement('th');
-                const headerTextElement = document.createElement('span');
-                headerTextElement.textContent = headerText;
-                headerTextElement.style.cursor = 'pointer';
-                headerTextElement.addEventListener('click', () => sortData(index));
-                th.appendChild(headerTextElement);
-                thead.appendChild(th);
-                sortDirections[index] = 'asc'; // กำหนดทิศทางการเรียงลำดับเริ่มต้น
-            });
-        }
-
-        function sortData(columnIndex) {
-            const direction = sortDirections[columnIndex];
-            jsonData.sort((a, b) => {
-            //if (columnIndex === 0) return 0; // ไม่เรียง header
-                const valA = a[columnIndex];
-                const valB = b[columnIndex];
-
-                if (direction === 'asc') {
-                    return String(valA).localeCompare(String(valB));
+            Tesseract.recognize(
+                imageData,
+                'eng',
+                { logger: m => console.log(m) }
+            ).then(({ data: { text } }) => {
+                const numbers = text.match(/\d+/g);
+                if (numbers) {
+                    resultDiv.textContent = 'ตัวเลขที่ตรวจพบ: ' + numbers.join(', ');
                 } else {
-                    return String(valB).localeCompare(String(valA));
+                    resultDiv.textContent = 'ไม่พบตัวเลข';
                 }
             });
-
-            sortDirections[columnIndex] = direction === 'asc' ? 'desc' : 'asc'; // สลับทิศทาง
-            displayTable(jsonData);
-        }
-        function createFilters(headers) {
-            const filterRow = document.getElementById('filterRow');
-            filterRow.innerHTML = '';
-
-            const indexHeader=document.createElement('span');
-            const indexth = document.createElement('th');
-            indexHeader.textContent="";
-            indexth.appendChild(indexHeader);
-            filterRow.appendChild(indexth);
-
-            headers.forEach((headerText, index) => {
-                const th = document.createElement('th');
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.placeholder = `Filter ${headerText}`;
-                input.addEventListener('input', () => filterData(index, input.value)); // เพิ่ม event listener
-                th.appendChild(input);
-                filterRow.appendChild(th);
-            });
-        }
-        function filterData(columnIndex, filterValue) {
-            const filteredData = jsonData.filter((row, index) => {
-                if (index === 0) return true; // ไม่กรอง header
-                return String(row[columnIndex]).toLowerCase().includes(filterValue.toLowerCase());
-            });
-            displayTable(filteredData);
-        }
+        });
     </script>
 </body>
 </html>
